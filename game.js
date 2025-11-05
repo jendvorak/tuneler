@@ -439,6 +439,15 @@ function init() {
             e.preventDefault();
         }
 
+        // Start game from start screen
+        const startScreen = document.getElementById('start-screen');
+        if (startScreen && startScreen.style.display !== 'none') {
+            if (e.key.toLowerCase() === 's' || e.key === 'Enter') {
+                startScreen.style.display = 'none';
+                startGame();
+            }
+        }
+
         // Restart game
         if (e.key.toLowerCase() === 'r' && game.gameOver) {
             startGame();

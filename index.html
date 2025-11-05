@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tuneler - Classic Tank Combat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            background: #111;
+            border: 3px solid #0f0;
+            box-shadow: 0 0 20px #0f0;
+        }
+
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            font-size: 14px;
+        }
+
+        .player-hud {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border: 2px solid;
+            min-width: 200px;
+        }
+
+        #player1-hud {
+            top: 10px;
+            left: 10px;
+            border-color: #00ff00;
+            color: #00ff00;
+        }
+
+        #player2-hud {
+            bottom: 10px;
+            right: 10px;
+            border-color: #ff00ff;
+            color: #ff00ff;
+        }
+
+        .hud-item {
+            margin: 5px 0;
+        }
+
+        .bar {
+            width: 150px;
+            height: 12px;
+            border: 1px solid;
+            margin-top: 3px;
+            position: relative;
+            background: #000;
+        }
+
+        .bar-fill {
+            height: 100%;
+            transition: width 0.2s;
+        }
+
+        .health-bar { border-color: #0f0; }
+        .health-bar .bar-fill { background: #0f0; }
+        .fuel-bar { border-color: #ff0; }
+        .fuel-bar .bar-fill { background: #ff0; }
+
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 3px solid #0f0;
+            padding: 30px 50px;
+            text-align: center;
+            display: none;
+            pointer-events: all;
+        }
+
+        #game-over h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px currentColor;
+        }
+
+        #game-over p {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+
+        #start-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            border: 3px solid #0f0;
+            padding: 40px;
+            text-align: center;
+            max-width: 600px;
+        }
+
+        #start-screen h1 {
+            font-size: 56px;
+            margin-bottom: 30px;
+            text-shadow: 0 0 15px #0f0;
+            letter-spacing: 4px;
+        }
+
+        #start-screen h2 {
+            color: #ff0;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        #start-screen p {
+            margin: 8px 0;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .controls {
+            display: inline-block;
+            text-align: left;
+            margin: 10px 20px;
+        }
+
+        .player1-controls { color: #00ff00; }
+        .player2-controls { color: #ff00ff; }
+
+        button {
+            background: #000;
+            color: #0f0;
+            border: 2px solid #0f0;
+            padding: 15px 40px;
+            font-family: 'Courier New', monospace;
+            font-size: 20px;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #0f0;
+            color: #000;
+            box-shadow: 0 0 20px #0f0;
+        }
+
+        .divider {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #0f0;
+            top: 50%;
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="ui-overlay">
+            <div class="divider"></div>
+
+            <div id="player1-hud" class="player-hud">
+                <div class="hud-item"><strong>PLAYER 1</strong></div>
+                <div class="hud-item">
+                    Health
+                    <div class="bar health-bar">
+                        <div class="bar-fill" id="p1-health" style="width: 100%"></div>
+                    </div>
+                </div>
+                <div class="hud-item">
+                    Fuel
+                    <div class="bar fuel-bar">
+                        <div class="bar-fill" id="p1-fuel" style="width: 100%"></div>
+                    </div>
+                </div>
+                <div class="hud-item">Ammo: <span id="p1-ammo">10</span></div>
+            </div>
+
+            <div id="player2-hud" class="player-hud">
+                <div class="hud-item"><strong>PLAYER 2</strong></div>
+                <div class="hud-item">
+                    Health
+                    <div class="bar health-bar">
+                        <div class="bar-fill" id="p2-health" style="width: 100%"></div>
+                    </div>
+                </div>
+                <div class="hud-item">
+                    Fuel
+                    <div class="bar fuel-bar">
+                        <div class="bar-fill" id="p2-fuel" style="width: 100%"></div>
+                    </div>
+                </div>
+                <div class="hud-item">Ammo: <span id="p2-ammo">10</span></div>
+            </div>
+
+            <div id="start-screen">
+                <h1>TUNELER</h1>
+                <p>Classic split-screen tank combat!</p>
+                <p>Dig tunnels, outmaneuver your opponent, and destroy their tank!</p>
+
+                <h2>Controls</h2>
+                <div class="controls player1-controls">
+                    <p><strong>PLAYER 1 (Green)</strong></p>
+                    <p>↑ W - Thrust Up</p>
+                    <p>↓ S - Thrust Down</p>
+                    <p>← A - Thrust Left</p>
+                    <p>→ D - Thrust Right</p>
+                    <p>SPACE - Fire</p>
+                </div>
+
+                <div class="controls player2-controls">
+                    <p><strong>PLAYER 2 (Magenta)</strong></p>
+                    <p>↑ I - Thrust Up</p>
+                    <p>↓ K - Thrust Down</p>
+                    <p>← J - Thrust Left</p>
+                    <p>→ L - Thrust Right</p>
+                    <p>ENTER - Fire</p>
+                </div>
+
+                <p style="margin-top: 20px; color: #ff0;">Tip: Movement uses fuel. Conserve it wisely!</p>
+
+                <button id="start-button">START GAME</button>
+            </div>
+
+            <div id="game-over">
+                <h1 id="winner-text">PLAYER 1 WINS!</h1>
+                <p>Press R to restart</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
